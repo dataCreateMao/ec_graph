@@ -1,0 +1,19 @@
+[project]
+name = "ec-graph"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "datasets>=4.8.4",
+    "transformers>=5.5.4",
+    "httpx[socks]>=0.24.0",
+]
+
+# torch 默认不安装：Intel macOS 已无官方 cp313+x86_64 wheel；从 PyTorch「cpu」索引锁到的
+# darwin 包也仅有 arm64。预处理脚本仅需 tokenizer，可不装 torch。
+# 训练环境：Apple Silicon / Linux / Win 可用 `uv sync --extra train`；
+# Intel Mac 建议用 conda 安装 torch，或 Python 3.12 + `uv sync --extra train` 后从 PyPI 装 torch 2.2.x。
+[project.optional-dependencies]
+train = [
+    "torch>=2.5.0",
+]

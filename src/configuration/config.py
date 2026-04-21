@@ -19,7 +19,7 @@ MODEL_NAME = 'google-bert/bert-base-chinese'
 # 3. 模型参数
 BATCH_SIZE = 8
 EPOCHS = 5
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 5e-5
 
 SAVE_STEPS = 20
 

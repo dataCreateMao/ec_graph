@@ -2,11 +2,14 @@
 name = "ec-graph"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<3.13"
 dependencies = [
+    "numpy<2",
     "datasets>=4.8.4",
-    "transformers>=5.5.4",
+    "transformers>=4.40,<5.0",
     "httpx[socks]>=0.24.0",
+    "seqeval>=1.2.2",
+    "evaluate>=0.4.6",
 ]
 
 # torch 默认不安装：Intel macOS 已无官方 cp313+x86_64 wheel；从 PyTorch「cpu」索引锁到的
@@ -15,5 +18,6 @@ dependencies = [
 # Intel Mac 建议用 conda 安装 torch，或 Python 3.12 + `uv sync --extra train` 后从 PyPI 装 torch 2.2.x。
 [project.optional-dependencies]
 train = [
-    "torch>=2.5.0",
+    "torch>=2.5.0; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    "torch>=2.2,<2.3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
 ]

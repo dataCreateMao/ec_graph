@@ -26,4 +26,17 @@ SAVE_STEPS = 20
 # 4. NER 任务分类标签
 LABELS = ['B','I','O']
 
+# MYSQL 数据库连接信息
+MYSQL_CONFIG = {
+    'host': '127.0.0.1',
+    'port': 3306,
+    'user': 'root',
+    'password': 'Aa123456',
+    'database': 'gmall',
+}
+
+NEO4J_CONFIG = {
+    'uri': 'neo4j://localhost:7687' ,
+    'auth': ('neo4j', 'Aa123456'),
+}
 

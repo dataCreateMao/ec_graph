@@ -4,12 +4,19 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "numpy<2",
     "datasets>=4.8.4",
     "transformers>=4.40,<5.0",
     "httpx[socks]>=0.24.0",
     "seqeval>=1.2.2",
     "evaluate>=0.4.6",
+    "path>=17.1.1",
+    "pymysql>=1.1.2",
+    "neo4j>=6.1.0",
+    "cryptography>=46.0.7",
+    "langchain>=1.2.15",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.2.1",
+    "langchain-neo4j>=0.9.0",
 ]
 
 # torch 默认不安装：Intel macOS 已无官方 cp313+x86_64 wheel；从 PyTorch「cpu」索引锁到的

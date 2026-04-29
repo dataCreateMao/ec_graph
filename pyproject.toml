@@ -21,6 +21,7 @@ dependencies = [
     "langchain-deepseek>=1.0.1",
     "langchain-huggingface>=1.2.2",
     "sentence-transformers>=5.4.1",
+    "accelerate>=0.26.0",
 ]
 
 # torch 默认不安装：Intel macOS 已无官方 cp313+x86_64 wheel；从 PyTorch「cpu」索引锁到的

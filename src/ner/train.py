@@ -2,7 +2,8 @@ import time
 import sys
 from pathlib import Path
 
-from datasets import load_dataset
+from datasets import load_from_disk
+import torch
 from transformers import AutoTokenizer, AutoModelForTokenClassification, Trainer, TrainingArguments, \
     DataCollatorForTokenClassification, EvalPrediction, EarlyStoppingCallback
 import evaluate
@@ -29,9 +30,9 @@ model = AutoModelForTokenClassification.from_pretrained(
     label2id=label2id
 )
 
-#3. 加载数据集
-train_dataset = load_dataset(PROCESSED_DATA_DIR/'train')
-valid_dataset = load_dataset(PROCESSED_DATA_DIR/'valid')
+#3. 加载数据集（预处理阶段使用 save_to_disk 持久化）
+train_dataset = load_from_disk(str(PROCESSED_DATA_DIR / 'train'))
+valid_dataset = load_from_disk(str(PROCESSED_DATA_DIR / 'valid'))
 # test_dataset = load_dataset(PROCESSED_DATA_DIR/'test')
 
 #4. 数据整理集
@@ -42,6 +43,25 @@ data_collator = DataCollatorForTokenClassification(
 )
 
 # 训练参数
+use_fp16 = torch.cuda.is_available()
+numpy_available_in_torch = True
+try:
+    _ = torch.zeros(1).numpy()
+except Exception:
+    numpy_available_in_torch = False
+
+if torch.cuda.is_available():
+    device_name = f"cuda:{torch.cuda.current_device()}"
+elif torch.backends.mps.is_available():
+    device_name = "mps"
+else:
+    device_name = "cpu"
+
+print(f"[INFO] Training device: {device_name}")
+print(f"[INFO] fp16 enabled: {use_fp16}")
+if not numpy_available_in_torch:
+    print("[WARN] Torch-NumPy bridge unavailable, fallback mode enabled: disable eval/metrics/early-stopping.")
+
 training_args = TrainingArguments(
     output_dir=str(CHECKPOINT_DIR / NER_DIR),
     logging_dir=str(LOG_DIR / NER_DIR / time.strftime('%Y-%m-%d_%H-%M-%S')),
@@ -52,22 +72,24 @@ training_args = TrainingArguments(
     save_steps=SAVE_STEPS,          #每20次迭代进行一次保存
     save_total_limit=3,             #最多保存3个检查点
 
-    fp16=True,              #开启混合精度训练
+    fp16=use_fp16,              # 仅在 CUDA 环境开启混合精度，避免 MPS+旧版 torch 报错
 
     logging_strategy='steps',
     logging_steps=SAVE_STEPS,
 
-    eval_strategy='steps',
-    eval_steps=SAVE_STEPS,
+    eval_strategy='steps' if numpy_available_in_torch else 'no',
+    eval_steps=SAVE_STEPS if numpy_available_in_torch else None,
 
-    metric_for_best_model='eval_overall_f1',     #模型评估指标
-    greater_is_better=True,
-    load_best_model_at_end=True,    #训练结束加载最佳模型
+    metric_for_best_model='eval_overall_f1' if numpy_available_in_torch else None,     #模型评估指标
+    greater_is_better=True if numpy_available_in_torch else None,
+    load_best_model_at_end=numpy_available_in_torch,    #训练结束加载最佳模型
 )
 
 #6. 评估指标函数
-seqeval = evaluate.load('seqeval')
+seqeval = evaluate.load('seqeval') if numpy_available_in_torch else None
 def compute_metrics(p: EvalPrediction):
+    if seqeval is None:
+        return {}
     # 提取模型的预测输出和真实标签
     logits = p.predictions
     preds = logits.argmax(axis=-1)      #预测分类标签
@@ -92,13 +114,11 @@ trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
-    eval_dataset=valid_dataset,
+    eval_dataset=valid_dataset if numpy_available_in_torch else None,
     tokenizer=tokenizer,
     data_collator=data_collator,
-    compute_metrics=compute_metrics,
-    callbacks=[
-        early_stopping_callback,
-    ]
+    compute_metrics=compute_metrics if numpy_available_in_torch else None,
+    callbacks=[early_stopping_callback] if numpy_available_in_torch else []
 )
 
 # 训练

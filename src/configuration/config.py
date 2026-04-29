@@ -40,3 +40,22 @@ NEO4J_CONFIG = {
     'auth': ('neo4j', 'Aa123456'),
 }
 
+# Embedding 后端配置：支持 local / api
+# - local: 使用 HuggingFaceEmbeddings（本地 sentence-transformers）
+# - api: 使用 OpenAI 兼容 Embeddings API（通过 base_url + api_key 调用）
+EMBEDDING_CONFIG = {
+    "backend": "api",  # "local" | "api"
+    "local": {
+        "model_name": "BAAI/bge-small-zh-v1.5",
+        "encode_kwargs": {"normalize_embeddings": True},
+    },
+    "api": {
+        # 优先从 .env 读取 ZAI_* 变量；未配置时回退到默认值
+        "model_env": "ZAI_MODEL",
+        "model": "embedding-3",
+        "url_env": "ZAI_AI_URL",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "api_key_env": "ZAI_API_KEY",
+    },
+}
+

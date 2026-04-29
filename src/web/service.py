@@ -15,6 +15,14 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langchain_core.prompts import PromptTemplate
 class ChatService:
+    @staticmethod
+    def _mask_secret(secret: str | None) -> str:
+        if not secret:
+            return "<empty>"
+        if len(secret) <= 8:
+            return "*" * len(secret)
+        return f"{secret[:4]}****{secret[-4:]}"
+
     def __init__(self):
         self.graph = Neo4jGraph(
             url=NEO4J_CONFIG["uri"],
@@ -22,6 +30,7 @@ class ChatService:
             password=NEO4J_CONFIG["auth"][1]
         )
         self.embedding_model = None
+        self.embedding_backend = EMBEDDING_CONFIG.get("backend", "local")
         load_dotenv()
         # LLM 
         self.llm = ChatOpenAI(
@@ -41,13 +50,36 @@ class ChatService:
         # 默认使用混合检索；若本机 torch 与 numpy 不兼容，则退化为全文检索兜底
         self.neo4j_vectors = {}
         try:
-            from langchain_huggingface import HuggingFaceEmbeddings
+            if self.embedding_backend == "api":
+                from langchain_openai import OpenAIEmbeddings
 
-            self.embedding_model = HuggingFaceEmbeddings(
-                model_name="BAAI/bge-small-zh-v1.5",
-                # model_name="BAAI/bge-large-zh-v1.5",
-                encode_kwargs={"normalize_embeddings": True}
-            )
+                api_cfg = EMBEDDING_CONFIG.get("api", {})
+                api_key = os.getenv(api_cfg.get("api_key_env", "OPENAI_API_KEY"))
+                if not api_key:
+                    raise ValueError("API embedding key missing")
+                model = os.getenv(api_cfg.get("model_env", "ZAI_MODEL"), api_cfg.get("model", "embedding-3"))
+                api_url = os.getenv(api_cfg.get("url_env", "ZAI_AI_URL"))
+                base_url = api_cfg.get("base_url", "https://open.bigmodel.cn/api/paas/v4")
+                if api_url:
+                    base_url = api_url.rsplit("/embeddings", 1)[0] if api_url.endswith("/embeddings") else api_url
+                self.embedding_model = OpenAIEmbeddings(
+                    model=model,
+                    base_url=base_url,
+                    api_key=api_key,
+                )
+                print(
+                    f"[INFO] Embedding backend in use: api, model={model}, base_url={base_url}, "
+                    f"api_key={self._mask_secret(api_key)}"
+                )
+            else:
+                from langchain_huggingface import HuggingFaceEmbeddings
+
+                local_cfg = EMBEDDING_CONFIG.get("local", {})
+                self.embedding_model = HuggingFaceEmbeddings(
+                    model_name=local_cfg.get("model_name", "BAAI/bge-small-zh-v1.5"),
+                    encode_kwargs=local_cfg.get("encode_kwargs", {"normalize_embeddings": True})
+                )
+                print("[INFO] Embedding backend in use: local")
             self.neo4j_vectors = {
                 "Trademark": Neo4jVector.from_existing_index(
                     index_name="trademark_vector_index",
@@ -204,4 +236,4 @@ class ChatService:
 
 if __name__ == "__main__":
     chat_service = ChatService()
-    chat_service.chat("Apple有哪些产品？")
+    chat_service.chat("HuaWei有哪些产品？")

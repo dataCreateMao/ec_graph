@@ -17,6 +17,10 @@ dependencies = [
     "langchain-community>=0.4.1",
     "langchain-openai>=1.2.1",
     "langchain-neo4j>=0.9.0",
+    "ipykernel>=7.2.0",
+    "langchain-deepseek>=1.0.1",
+    "langchain-huggingface>=1.2.2",
+    "sentence-transformers>=5.4.1",
 ]
 
 # torch 默认不安装：Intel macOS 已无官方 cp313+x86_64 wheel；从 PyTorch「cpu」索引锁到的

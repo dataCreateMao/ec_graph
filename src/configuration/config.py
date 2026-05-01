@@ -44,9 +44,10 @@ NEO4J_CONFIG = {
 # - local: 使用 HuggingFaceEmbeddings（本地 sentence-transformers）
 # - api: 使用 OpenAI 兼容 Embeddings API（通过 base_url + api_key 调用）
 EMBEDDING_CONFIG = {
-    "backend": "api",  # "local" | "api"
+    "backend": "local",  # "local" | "api"
     "local": {
-        "model_name": "BAAI/bge-small-zh-v1.5",
+        "model_name": CHECKPOINT_DIR / "ner" / "best_model" ,
+        # "model_name": "BAAI/bge-small-zh-v1.5",
         "encode_kwargs": {"normalize_embeddings": True},
     },
     "api": {

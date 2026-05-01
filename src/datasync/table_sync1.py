@@ -1,5 +1,11 @@
 # graph/src/datasync/table_sync.py
+from pathlib import Path
+import sys
 
+
+SRC_ROOT = Path(__file__).resolve().parents[1]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 from datasync.utils import MysqlReader, Neo4jWriter
 
 
@@ -239,7 +245,7 @@ class TableSynchronizer:
           tm_name name
        from base_trademark
        """
-        self.neo4j_writer.write_nodes(label="BaseTrademark", properties=self.mysql_reader.read(sql))
+        self.neo4j_writer.write_nodes(label="Trademark", properties=self.mysql_reader.read(sql))
 
     def sync_base_trademark_spu(self):
         sql = """
@@ -249,7 +255,7 @@ class TableSynchronizer:
        """
         relations = self.mysql_reader.read(sql)
         self.neo4j_writer.write_relations(start_label="SPU",
-                                              end_label="BaseTrademark",
+                                              end_label="Trademark",
                                               relations=relations,
                                               type='Belong')
 

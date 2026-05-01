@@ -72,8 +72,10 @@ class IndexUtils:
             from langchain_huggingface import HuggingFaceEmbeddings
 
             local_cfg = EMBEDDING_CONFIG.get("local", {})
+            raw_name = local_cfg.get("model_name")
+            model_name = raw_name if isinstance(raw_name, str) else str(raw_name)
             self.embedding_model = HuggingFaceEmbeddings(
-                model_name=local_cfg.get("model_name", "BAAI/bge-small-zh-v1.5"),
+                model_name=model_name,
                 encode_kwargs=local_cfg.get("encode_kwargs", {"normalize_embeddings": True}),
             )
             self.embedding_enabled = True

@@ -75,8 +75,10 @@ class ChatService:
                 from langchain_huggingface import HuggingFaceEmbeddings
 
                 local_cfg = EMBEDDING_CONFIG.get("local", {})
+                raw_name = local_cfg.get("model_name", "BAAI/bge-small-zh-v1.5")
+                model_name = raw_name if isinstance(raw_name, str) else str(raw_name)
                 self.embedding_model = HuggingFaceEmbeddings(
-                    model_name=local_cfg.get("model_name", "BAAI/bge-small-zh-v1.5"),
+                    model_name=model_name,
                     encode_kwargs=local_cfg.get("encode_kwargs", {"normalize_embeddings": True})
                 )
                 print("[INFO] Embedding backend in use: local")
@@ -205,7 +207,12 @@ class ChatService:
                     records = self.graph.query(
                         """
                         CALL db.index.fulltext.queryNodes($index_name, $query) YIELD node, score
-                        RETURN coalesce(node.name, node.title, node.id, toString(node)) AS value
+                        RETURN coalesce(
+                            node.name,
+                            node.title,
+                            CASE WHEN node.id IS NOT NULL THEN toString(node.id) ELSE NULL END,
+                            toString(id(node))
+                        ) AS value
                         ORDER BY score DESC
                         LIMIT 1
                         """,
@@ -225,15 +232,15 @@ class ChatService:
 
     # 4.根据用户问题和查询结果生成答案
     def _generate_answer(self, question, query_result):
-        template = f"""
+        # 仅用 f-string 拼接；勿再对结果调用 str.format，否则 query_result 里的 {'key': ...} 会被当成占位符
+        prompt = f"""
         你是一个电商智能客服，根据用户问题，以及数据库查询结果生成一段简洁、准确的自然语言回答。
         用户问题: {question}
         数据库返回结果: {query_result}
         """
-        prompt = template.format(question=question, query_result=query_result)
         result = self.llm.invoke(prompt)
         return self.str_parser.parse(result.content)
 
 if __name__ == "__main__":
     chat_service = ChatService()
-    chat_service.chat("HuaWei有哪些产品？")
+    chat_service.chat("Apple有哪些产品？")
